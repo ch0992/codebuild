@@ -1,0 +1,172 @@
+Resources: 
+  ArchitectureMBackendPipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      Name: ${self:custom.baseDomain}-${self:custom.subDomain}-${self:custom.currentStage}
+      ArtifactStore:
+        Type: S3
+        Location: nsm-${self:custom.currentStage}-serverless-cicd-bucket
+      RestartExecutionOnUpdate: False
+      RoleArn: arn:aws:iam::175816075786:role/nsm_codepipeline_create_Role
+      Stages:
+        - Name: Source
+          Actions: 
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: "1"
+              Configuration:
+                RepositoryName: ${self:custom.baseDomain}-${self:custom.subDomain}
+                BranchName: ${self:custom.currentStage}
+              OutputArtifacts:
+                - Name: SourceArtifact
+        - Name: Build
+          Actions:
+            - Name: BuildLivestream
+              Region: ${self:custom.currentRegion}
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:
+                  Ref: MediaThingliveLivestreamBuild
+                EnvironmentVariables: '[{"name":"SERVICE_PATH","value":"src/thinglive/livestream","type":"PLAINTEXT"},{"name":"STAGE","value":"${self:custom.currentStage}","type":"PLAINTEXT"},{"name":"COMMAND","value":"package","type":"PLAINTEXT"}]'
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: LiveStreamBuildArtifact
+              RunOrder: 1
+            - Name: BuildVodsteram
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:
+                  Ref: MediaThingliveVodstreamBuild
+                EnvironmentVariables: '[{"name":"SERVICE_PATH","value":"src/thinglive/vodstream","type":"PLAINTEXT"},{"name":"STAGE","value":"${self:custom.currentStage}","type":"PLAINTEXT"},{"name":"COMMAND","value":"package","type":"PLAINTEXT"}]'
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: VodstreamBuildArtifact
+              RunOrder: 1
+            - Name: BuildNstalk
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:
+                  Ref: MediaThingliveNstalkBuild
+                EnvironmentVariables: '[{"name":"SERVICE_PATH","value":"src/thinglive/nstalk","type":"PLAINTEXT"},{"name":"STAGE","value":"${self:custom.currentStage}","type":"PLAINTEXT"},{"name":"COMMAND","value":"package","type":"PLAINTEXT"}]'
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: NstalkBuildArtifact
+              RunOrder: 1
+        - Name: ManualApproval
+          Actions:
+            - Name: EmailAuth
+              Region: ${self:custom.currentRegion}
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: "1"
+              Configuration:
+                NotificationArn: arn:aws:sns:ap-northeast-2:175816075786:nsm_serverless_deploy_email_authentication
+                ExternalEntityLink: "https://ap-northeast-2.console.aws.amazon.com/codesuite/codepipeline/pipelines?region=ap-northeast-2"
+                CustomData: '${self:custom.baseDomain}-${self:custom.subDomain} Manual approval'
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: DeployLivestream
+              Region: ${self:custom.currentRegion}
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:
+                  Ref: MediaThingliveLivestreamBuild
+                EnvironmentVariables: '[{"name":"SERVICE_PATH","value":"src/thinglive/livestream","type":"PLAINTEXT"},{"name":"STAGE","value":"${self:custom.currentStage}","type":"PLAINTEXT"},{"name":"COMMAND","value":"deploy","type":"PLAINTEXT"}]'
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+            - Name: DeployVodstream
+              Region: ${self:custom.currentRegion}
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:
+                  Ref: MediaThingliveVodstreamBuild
+                EnvironmentVariables: '[{"name":"SERVICE_PATH","value":"src/thinglive/vodstream","type":"PLAINTEXT"},{"name":"STAGE","value":"${self:custom.currentStage}","type":"PLAINTEXT"},{"name":"COMMAND","value":"deploy","type":"PLAINTEXT"}]'
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+            - Name: DeployNstalk
+              Region: ${self:custom.currentRegion}
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:
+                  Ref: MediaThingliveNstalkBuild
+                EnvironmentVariables: '[{"name":"SERVICE_PATH","value":"src/thinglive/nstalk","type":"PLAINTEXT"},{"name":"STAGE","value":"${self:custom.currentStage}","type":"PLAINTEXT"},{"name":"COMMAND","value":"deploy","type":"PLAINTEXT"}]'
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+  MediaThingliveLivestreamBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.baseDomain}-${self:custom.subDomain}-livestream
+      ServiceRole: arn:aws:iam::175816075786:role/nsm_serverless_codebuild_role
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 'buildspec.yml'
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        Type: LINUX_CONTAINER
+  MediaThingliveVodstreamBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.baseDomain}-${self:custom.subDomain}-vodstream
+      ServiceRole: arn:aws:iam::175816075786:role/nsm_serverless_codebuild_role
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 'buildspec.yml'
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        Type: LINUX_CONTAINER
+  MediaThingliveNstalkBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: ${self:custom.baseDomain}-${self:custom.subDomain}-nstalk
+      ServiceRole: arn:aws:iam::175816075786:role/nsm_serverless_codebuild_role
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 'buildspec.yml'
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        Type: LINUX_CONTAINER

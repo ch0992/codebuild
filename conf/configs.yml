@@ -1,0 +1,19 @@
+baseDomain: architecture
+subDomain: framework
+currentStage: ${opt:stage, self:provider.stage}
+currentRegion: ${opt:region, self:provider.region}
+currentVars:
+  bucketName: nsm-${self:custom.currentStage}-serverless-bucket
+  restApiId: ${cf:${self:service}-${opt:stage, self:custom.currentStage}.RestApiId}
+  stage: ${self:custom.currentStage}
+
+customDomain: 
+  domainName: ${self:custom.baseDomain}.${self:custom.currentStage}-nsmall.com 
+  basePath: 'mbackend'
+  stage: ${self:custom.currentStage}
+  createRoute53Record: true 
+  securityPolicy: tls_1_2 
+
+prune:
+  automatic: true
+  number: 5

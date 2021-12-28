@@ -1,0 +1,24 @@
+{
+    "definitions": {},
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "TheSampleSchema",
+    "required": [
+        "service",
+        "test"
+    ],
+    "properties": {
+        "service": {
+            "type": "string",
+            "title": "The Sample Schema",
+            "default": "defaultvalue",
+            "pattern": "^[a-zA-Z0-9]+$"
+        },
+        "test": {
+            "type": "string",
+            "title": "test Schema",
+            "default": "defaultvalue",
+            "pattern": "^[a-zA-Z0-9]+$"
+        }
+    }
+}

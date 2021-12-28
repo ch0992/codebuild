@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+    commands:
+      - npm i
+  pre_build:
+    run-as: root
+    commands:
+      # - npm run zaproxy
+      # - npm run snyk
+      # - npm run nodejsscan
+      - npm run sonar
+      - echo -n "Service path:" && echo ${SERVICE_PATH}
+      - |
+        if [ "$STAGE" = "dev" ]; then
+          # DEV 배포환경 설정
+          echo -n "Current stage:" && echo ${STAGE}
+        fi
+      - |
+        if [ "$STAGE" = "test" ]; then
+          # TEST 배포환경 설정
+          echo -n "Current stage:" && echo ${STAGE}
+        fi
+      - |
+        if [ "$STAGE" = "prod" ]; then
+          # PROD 배포환경 설정
+          echo -n "Current stage:" && echo ${STAGE}
+        fi
+
+  # build:
+  #   commands:
+  #     - cd ${SERVICE_PATH} && sls ${COMMAND} -s ${STAGE} -v && cd -
+
+cache:
+  paths:
+    - "node_modules"

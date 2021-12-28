@@ -1,0 +1,5 @@
+resources:
+  # Api Gateway Config + Output
+  - ${file(conf/resources/api-gateway.yml)}
+  # # CICD
+  - ${file(conf/resources/cicd.yml):${self:custom.currentStage}}

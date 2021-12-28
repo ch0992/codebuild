@@ -1,0 +1,8 @@
+- Effect: Allow
+  Action:
+    - apigateway:GET
+    - apigateway:OPTIONS
+  Resource: '*'
+
+    # "Fn::Sub": "arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:custom.currentStage}/*/*"
+    # !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:custom.currentStage}/*/*'

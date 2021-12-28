@@ -1,0 +1,57 @@
+# Base Stack
+## architecture-framework
+## APIGateway, authoriser, IAM role and shared path resources
+
+service: ${self:custom.baseDomain}-${self:custom.subDomain}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: ap-northeast-2
+  memorySize: 256
+  logRetentionInDays: 14
+  deploymentBucket:
+    name: ${self:custom.currentVars.bucketName}
+    serverSideEncryption: AES256  
+  deploymentPrefix: ${self:custom.baseDomain}-${self:custom.subDomain}
+  environment: ${self:custom.currentVars}
+  iamRoleStatements: ${file(conf/role.yml)}
+  stackTags: ${file(conf/tags.yml)}
+  tags: ${file(conf/tags.yml)}
+
+plugins:
+  - serverless-offline
+  - serverless-domain-manager
+  - serverless-mocha-plugin
+  - serverless-plugin-tracing
+  - serverless-prune-plugin
+
+custom: ${file(conf/configs.yml)}
+
+resources: ${file(conf/resources/resources.yml):resources}
+
+functions: 
+  healthCheck:
+    handler: src/domain/infraHealthcheck.handler
+    events:
+      - http:
+          path: healthcheck
+          method: get
+          cors: true
+    environment:
+      baseDomain: ${self:custom.baseDomain}
+      subDomain: ${self:custom.subDomain}
+      service: 'infra'
+  swaggerExport:
+    handler: src/common/docs/swagger.handler
+    events:
+      - http:
+          path: docs/export
+          method: get
+  swaggerDocs:
+    handler: src/common/docs/swagger-ui.handler
+    events:
+      - http:
+          path: docs
+          method: get

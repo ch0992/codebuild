@@ -1,0 +1,22 @@
+baseDomain: architecture
+subDomain: framework
+currentStage: ${opt:stage, self:provider.stage}
+currentRegion: ${opt:region, self:provider.region}
+currentVars:
+  bucketName: nsm-${self:custom.currentStage}-serverless-bucket
+
+webpack:
+  webpackConfig: ./webpack.config.js 
+  includeModules: 
+    forceExclude:
+      - aws-sdk
+    packagePath: ../../../package.json
+  packager: npm
+
+packageExternal:
+  external:
+    - '../../common'
+    
+prune:
+  automatic: true
+  number: 5

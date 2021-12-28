@@ -1,0 +1,81 @@
+Resources: 
+  # APIGateway 4xx 에러 공통 처리 
+  GatewayResponseDefault4XX: 
+    Type: AWS::ApiGateway::GatewayResponse 
+    Properties: 
+      ResponseParameters: 
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'" 
+        gatewayresponse.header.Access-Control-Allow-Headers: "'*'" 
+      ResponseType: DEFAULT_4XX 
+      RestApiId: 
+        Ref: 'ApiGatewayRestApi' 
+
+  # APIGateway 5xx 에러 공통 처리 
+  GatewayResponseDefault5XX: 
+    Type: 'AWS::ApiGateway::GatewayResponse' 
+    Properties: 
+      ResponseParameters: 
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'" 
+        gatewayresponse.header.Access-Control-Allow-Headers: "'*'" 
+      ResponseType: DEFAULT_5XX 
+      RestApiId: 
+        Ref: 'ApiGatewayRestApi' 
+
+  # Rest API
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: mbackend
+      Description: MBackend Sample API Gateway
+
+  # Rest API Paths
+  ApiGatewayResourceMBackendServiceA:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: { Ref: "ApiGatewayRestApi" }
+      ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId"}
+      PathPart: "service-a"
+  ApiGatewayResourceMBackendServiceB:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: { Ref: "ApiGatewayRestApi" }
+      ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId"}
+      PathPart: "service-b"
+  ApiGatewayResourceMBackendServiceC:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: { Ref: "ApiGatewayRestApi" }
+      ParentId: { Fn::GetAtt: "ApiGatewayRestApi.RootResourceId"}
+      PathPart: "service-c"
+
+Outputs:
+  # RestApi Resource ID
+  RestApiId:
+    Value:
+      Ref: ApiGatewayRestApi
+    Export:
+      Name: mbackend-${self:custom.currentStage}-RestApiId
+
+  # RestApi Root Resource ('/' path)
+  RootResourceId:
+    Value:
+      Fn::GetAtt: ApiGatewayRestApi.RootResourceId
+    Export:
+      Name: mbackend-${self:custom.currentStage}-RootResourceId
+
+  # Path Resources
+  ApiGatewayResourceMbackendServiceA:
+    Value:
+      Ref: ApiGatewayResourceMBackendServiceA
+    Export:
+      Name: mbackend-service-a-${self:custom.currentStage}-ApiGatewayResource
+  ApiGatewayResourceMbackendServiceB:
+    Value:
+      Ref: ApiGatewayResourceMBackendServiceB
+    Export:
+      Name: mbackend-service-b-${self:custom.currentStage}-ApiGatewayResource
+  ApiGatewayResourceMbackendServiceC:
+    Value:
+      Ref: ApiGatewayResourceMBackendServiceC
+    Export:
+      Name: mbackend-service-c-${self:custom.currentStage}-ApiGatewayResource

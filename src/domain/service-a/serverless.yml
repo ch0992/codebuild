@@ -1,0 +1,62 @@
+# Sub Stack
+## architecture-framework-mbackend-service-a
+
+service: ${self:custom.baseDomain}-${self:custom.subDomain}-service-a
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: ap-northeast-2
+  memorySize: 256
+  logRetentionInDays: 14
+  apiGateway: ${file(conf/resources/api-gateway.yml)}
+  deploymentBucket:
+    name: ${self:custom.currentVars.bucketName}
+    serverSideEncryption: AES256
+  deploymentPrefix: ${self:custom.baseDomain}-${self:custom.subDomain}
+  iamRoleStatements: ${file(conf/role.yml)}
+  tags: ${file(conf/tags.yml)}
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+  - serverless-package-external
+
+custom: ${file(conf/configs.yml)}
+
+package:
+  include:
+    - ../../../node_modules
+
+functions:
+  healthCheck:
+    handler: functions/healthcheck.handler
+    events:
+      - http:
+          path: healthcheck
+          method: get
+          cors: true
+    environment:
+      baseDomain: ${self:custom.baseDomain}
+      subDomain: ${self:custom.subDomain}
+      service: 'service-a'
+
+  schemaCheck:
+    handler: functions/schema.handler
+    events:
+      - http:
+          path: schema
+          method: post
+          integration: lambda
+          request:
+            schema:
+              application/json: ${file(schema/sampleSchema.json)}
+          response:
+            headers:
+              Content-Type: "'application/json'"
+            statusCodes:
+              200:
+                pattern: ''
+              400:
+                pattern: '.*"statusCode":400,.*'
